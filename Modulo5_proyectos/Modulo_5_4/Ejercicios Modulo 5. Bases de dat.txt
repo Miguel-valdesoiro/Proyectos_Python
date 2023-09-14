@@ -1,0 +1,302 @@
+Ejercicios Modulo 5. Bases de datos con SQLite (Soluciones)
+
+1) Ejercicio guiado de SQLite. Analiza y prueba el siguiente código:
+
+import os
+import sqlite3
+
+# Definimos la ruta y nombre de la base de datos, por defecto, en el directorio actual
+default_path_db = "almacen.db" 
+   
+''' Función encargada de la conexión a la base de datos '''
+def db_connect(db_path = default_path_db):
+    conexion = sqlite3.connect(db_path) # Conexión a la base de datos
+    return conexion
+ 
+''' Función encargada de crear las tablas de la BD '''
+def db_create_tables():
+    try:
+        # Por claridad, podemos usar la triple comilla para definir el create en varias lineas
+        cur.execute("""CREATE TABLE producto (
+                              id_producto INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                              descripcion TEXT NOT NULL,
+                              precio REAL NOT NULL
+                            )""")
+        print(" > Tabla producto creada con éxito")                        
+    except sqlite3.OperationalError:
+        print(" > La tabla producto ya existe") 
+        
+    try:
+        cur.execute("""CREATE TABLE cliente (
+                              id_cliente INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                              nombre TEXT NOT NULL,
+                              apellido TEXT
+                            )""")
+        print(" > Tabla cliente creada con éxito")                        
+    except sqlite3.OperationalError:
+        print(" > La tabla cliente ya existe") 
+        
+    try:
+        cur.execute("""CREATE TABLE pedido (
+                              id_pedido INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                              fecha TEXT NOT NULL,
+                              id_cliente INTEGER,
+                              FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente)
+                            )""")
+        print(" > Tabla pedido creada con éxito")                        
+    except sqlite3.OperationalError:
+        print(" > La tabla pedido ya existe") 
+        
+    try:
+        cur.execute("""CREATE TABLE productos_del_pedido (
+                              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                              id_producto INTEGER NOT NULL,
+                              cantidad INTEGER NOT NULL,
+                              id_pedido INTEGER NOT NULL,
+                              FOREIGN KEY (id_producto) REFERENCES producto (id_producto),
+                              FOREIGN KEY (id_pedido) REFERENCES pedido (id_pedido)
+                            )""")
+        print(" > Tabla productos_del_pedido creada con éxito")                        
+    except sqlite3.OperationalError:
+        print(" > La tabla productos_del_pedido ya existe") 
+        
+    con.commit() # Se actualizan los cambios pendientes en la BD
+
+''' Función encargada de crear un registro en la tabla producto '''
+def db_create_producto(descripcion, precio):
+    # Al realizar el insert fijarse que el id no hay que añadirlo porque se definió como autoincremental
+    sql = """
+        INSERT INTO producto (descripcion, precio)
+        VALUES (?, ?)"""
+    cur.execute(sql, (descripcion, precio))
+    return cur.lastrowid
+
+''' Función encargada de crear un registro en la tabla cliente '''
+def db_create_cliente(nombre, apellido):
+    sql = """
+        INSERT INTO cliente (nombre, apellido)
+        VALUES (?, ?)"""
+    cur.execute(sql, (nombre, apellido))
+    return cur.lastrowid
+
+''' Función encargada de crear un registro en la tabla pedido '''
+def db_create_pedido(fecha, id_cliente):
+    sql = """
+        INSERT INTO pedido (fecha, id_cliente)
+        VALUES (?, ?)"""
+    cur.execute(sql, (fecha, id_cliente))
+    return cur.lastrowid
+
+''' Función encargada de crear un registro en la tabla pedido '''
+def db_create_productos_del_pedido(id_producto, cantidad, id_pedido):
+    sql = """
+        INSERT INTO productos_del_pedido
+            (id_producto, cantidad, id_pedido)
+        VALUES (?, ?, ?)"""
+    cur.execute(sql, (id_producto, cantidad, id_pedido))
+    return cur.lastrowid
+    
+''' Función que resetea la base de datos eliminando sus tablas '''
+def db_reset_database():
+    cur.execute("DROP TABLE IF EXISTS producto")
+    cur.execute("DROP TABLE IF EXISTS cliente")
+    cur.execute("DROP TABLE IF EXISTS pedido")
+    cur.execute("DROP TABLE IF EXISTS productos_del_pedido")
+    con.commit() # Se actualizan los cambios pendientes en la BD
+    print(" > Reset DB ... OK")
+    
+def db_select_all(nombre_tabla):
+    print("\n=== REGISTROS DE LA TABLA", nombre_tabla.upper(), "===")
+    cur.execute("SELECT * FROM {}".format(nombre_tabla))
+    resultados = cur.fetchall()
+    for registro in resultados:
+        print(registro)
+    
+
+''' Función pricipal del programa '''
+if __name__ == "__main__":
+    
+    con = db_connect() # Invocamos a la función que establece la conexión con la BD
+    cur = con.cursor()  # Se crea el cursor para la BD
+    
+    db_reset_database() # Borramos las tablas de la base de datos antes de empezar
+    db_create_tables() # Crear las tablas
+    
+    # En esta ocasión no vamos a insertar todos los datos de golpe
+    # Vamos a crear un método para insertar cada registro de manera individual
+    # Esta técnica es muy utilizada si la metodología estándar de inserción de datos es a través de formularios
+    num = db_create_producto("Macbook Pro 13 pulgadas", 1200.00) # descripcion, precio
+    db_create_producto("Dell Ultrasharp", 1500.00)
+    db_create_producto("Iphone 5S", 900.50)
+    db_create_producto("One Plus 6T", 499.00)
+    db_create_producto("Applewatch", 399.70)
+    
+    db_create_cliente("Cristian", "Rodríguez") # nombre, apellido
+    db_create_cliente("David", "Álvarez")
+    db_create_cliente("Sara", "Campos")
+    db_create_cliente("Lara", "Pérez")
+    db_create_cliente("Sofía", "Rodríguez")
+    
+    db_create_pedido("2020-12-20", 1) # fecha, id_cliente
+    db_create_pedido("2020-12-21", 2)
+    db_create_pedido("2020-12-21", 3)
+    db_create_pedido("2020-12-24", 1)
+    db_create_pedido("2020-12-27", 5)
+    
+    db_create_productos_del_pedido(1, 2, 1) # id_producto, cantidad, id_pedido
+    db_create_productos_del_pedido(2, 1, 1)
+    db_create_productos_del_pedido(5, 3, 1)
+    db_create_productos_del_pedido(1, 1, 2)
+    db_create_productos_del_pedido(3, 1, 3)
+    db_create_productos_del_pedido(4, 2, 3)
+    db_create_productos_del_pedido(5, 5, 4)
+    db_create_productos_del_pedido(1, 1, 5)
+    db_create_productos_del_pedido(2, 1, 5)
+    db_create_productos_del_pedido(3, 1, 5)
+    db_create_productos_del_pedido(4, 1, 5)
+    db_create_productos_del_pedido(5, 1, 5)
+    
+    # Hacemos unos selects generales para comprobar que los inserts se hayan realizado correctamente
+    db_select_all("cliente")
+    db_select_all("producto")
+    db_select_all("pedido")
+    db_select_all("productos_del_pedido")
+    
+    print("\n=== CONSULTA AVANZADA 1 ===")
+    # Vamos a mezclar la tabla pedido y la tabla cliente, vamos a mostrar los pedidos y el nombre del cliente que los hizo
+    cur.execute('''SELECT pedido.id_pedido,pedido.fecha,pedido.id_cliente,cliente.nombre 
+                FROM pedido INNER JOIN cliente 
+                ON pedido.id_cliente = cliente.id_cliente
+                ''')
+    resultados = cur.fetchall()
+    for registro in resultados:
+        print(registro)
+        
+    # Mejoremos el diseño de la salida por pantalla
+    print("\n=== CONSULTA AVANZADA 1 (SALIDA POR PANTALLA MEJORADA) ===")
+    cur.execute('''SELECT pedido.id_pedido,pedido.fecha,pedido.id_cliente,cliente.nombre 
+                FROM pedido INNER JOIN cliente 
+                ON pedido.id_cliente = cliente.id_cliente
+                ''')
+    titulo_id_pedido, titulo_fecha, titulo_id_cliente, titulo_nombre = "ID_PEDIDO", "FECHA", "ID_CLIENTE", "NOMBRE"
+    print(f"{titulo_id_pedido:<12}{titulo_fecha:<15}{titulo_id_cliente:<12}{titulo_nombre:<10}")
+    for id_pedido, fecha, id_cliente, nombre in cur.fetchall():
+        print(f"{id_pedido:<12}{fecha:<15}{id_cliente:<12}{nombre:<10}")
+    
+        
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # ZONA DE EXPERIMENTACIÓN                                                                                   #
+    # Una vez llegado aquí, realiza alguna consulta más, tenemos una tabla de pedido y una tabla de pedidos y   #
+    # una tabla que contiene los productos de cada pedido. Estas dos tablas estan relacionadas, se puede sacar  #
+    # información del inner join de ambas.                                                                      #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    
+    try:
+        con.commit() # Se actualizan los cambios pendientes en la BD
+        con.close() # Se cierra la conexión
+    except:
+        con.rollback() # rollback devuelve la bd al último commit
+        raise RuntimeError("Ha ocurrido un error ... Volviendo al commit anterior ... ")
+
+1) Practiquemos un poco con SQLite:
+
+* Crea una base de datos que se llame biblioteca
+* Crea las siguiente tablas (deberás poner los tipos de los atributos con lógica, investiga cuales hay en SQLite para poder hacerlo):
+    * autor(dni, nombre, apellidos, estarVivo)
+    * libro(isbn, titulo, editorial, año_escrito)
+    * usuario(dni, nombre, apellidos, numPrestamos)
+* Inserta al menos 3 registros en cada una de las tablas
+    * En autor, algunos vivos y otros muertos
+    * En libro, algunos con año de escritura anerior a 1900 y otros después
+    * En usuario, algunos con más de 10 prestamos y otros con menos
+* Comprueba que todo este correcto con DB Browser (SQLite)
+* Realiza las siguientes consultas:
+    * Lista a todos los autores
+    * Lista todos los libros
+    * Lista todos los usuarios
+    * Lista todos los autores que esten vivos (CLAUSULA WHERE)
+    * Lista todos los libros que hayan sido escritos posteriormente a 1900
+    * Lista todos los usuarios que se hayan llevado más de 10 libros y que se llamen Paco
+
+import sqlite3
+
+# Crear la base de datos o conectarse si ya existe
+con = sqlite3.connect('biblioteca.db')
+cur = con.cursor()
+
+# Crear la tabla autor
+cur.execute('''CREATE TABLE IF NOT EXISTS autor (
+               dni TEXT PRIMARY KEY,
+               nombre TEXT,
+               apellidos TEXT,
+               estarVivo INTEGER
+            )''')
+
+# Crear la tabla libro
+cur.execute('''CREATE TABLE IF NOT EXISTS libro (
+               isbn TEXT PRIMARY KEY,
+               titulo TEXT,
+               editorial TEXT,
+               año_escrito INTEGER
+            )''')
+
+# Crear la tabla usuario
+cur.execute('''CREATE TABLE IF NOT EXISTS usuario (
+               dni TEXT PRIMARY KEY,
+               nombre TEXT,
+               apellidos TEXT,
+               numPrestamos INTEGER
+            )''')
+
+# Insertar datos en las tablas
+autores = [
+    ('11111111A', 'Gabriel', 'García Márquez', 0),
+    ('22222222B', 'Julio', 'Cortázar', 1),
+    ('33333333C', 'Mario', 'Vargas Llosa', 1)
+]
+
+libros = [
+    ('978-0307474748', 'Cien años de soledad', 'Sudamericana', 1967),
+    ('978-8466331855', 'Rayuela', 'Alfaguara', 1963),
+    ('978-8420401474', 'La casa verde', 'Alfaguara', 1966)
+]
+
+usuarios = [
+    ('44444444D', 'Paco', 'Gómez', 15),
+    ('55555555E', 'María', 'López', 8),
+    ('66666666F', 'Paco', 'Martínez', 12)
+]
+
+cur.executemany('INSERT INTO autor VALUES (?, ?, ?, ?)', autores)
+cur.executemany('INSERT INTO libro VALUES (?, ?, ?, ?)', libros)
+cur.executemany('INSERT INTO usuario VALUES (?, ?, ?, ?)', usuarios)
+
+con.commit()
+
+# Realizar consultas
+print("Autores:")
+for row in cur.execute('SELECT * FROM autor'):
+    print(row)
+
+print("\nLibros:")
+for row in cur.execute('SELECT * FROM libro'):
+    print(row)
+
+print("\nUsuarios:")
+for row in cur.execute('SELECT * FROM usuario'):
+    print(row)
+
+print("\nAutores vivos:")
+for row in cur.execute('SELECT * FROM autor WHERE estarVivo = 1'):
+    print(row)
+
+print("\nLibros escritos después de 1900:")
+for row in cur.execute('SELECT * FROM libro WHERE año_escrito > 1900'):
+    print(row)
+
+print("\nUsuarios con más de 10 préstamos y que se llaman Paco:")
+for row in cur.execute('SELECT * FROM usuario WHERE numPrestamos > 10 AND nombre = "Paco"'):
+    print(row)
+
+# Cerrar la conexión
+con.close()
